@@ -3,18 +3,11 @@ package com.appsv.revisecontactapp.presentation.screen
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -25,16 +18,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,10 +30,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.content.PermissionChecker
 import androidx.navigation.NavHostController
 import com.appsv.revisecontactapp.presentation.ContactState
 import com.appsv.revisecontactapp.presentation.ContactViewModel
 import com.appsv.revisecontactapp.presentation.navigation.Routes
+import android.Manifest
+import android.content.pm.PackageManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,7 +72,6 @@ fun HomeScreen(
     ) { innerPadding ->
 
         Column(
-
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
@@ -107,14 +95,11 @@ fun HomeScreen(
                         state = state,
                         navController = navController
                     )
-
                 }
             }
         }
     }
-
 }
-
 
 @Composable
 fun contactCard(
@@ -128,11 +113,29 @@ fun contactCard(
     viewModel: ContactViewModel,
     state: ContactState,
     navController: NavHostController
-
-
 ) {
-
     val context = LocalContext.current
+    var showDialog by remember { mutableStateOf(false) }
+
+    if (showDialog) {
+        DeleteConfirmationDialog(
+            name = name,
+            onConfirm = {
+                state.id.value = id
+                state.name.value = name
+                state.phoneNumber.value = phoneNumber
+                state.email.value = email
+                state.image.value = imageByteArray
+                state.dateOfCreation.value = dateOfCreation
+                viewModel.DeleteContact()
+                showDialog = false
+            },
+            onDismiss = {
+                showDialog = false
+            }
+        )
+    }
+
     Card(
         onClick = {
             state.id.value = id
@@ -145,17 +148,15 @@ fun contactCard(
         },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(5.dp)
             .clip(RoundedCornerShape(12.dp))
-
     ) {
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
-
+                .padding(1.dp)
         ) {
             if (image != null) {
                 Image(
@@ -165,7 +166,6 @@ fun contactCard(
                     modifier = Modifier
                         .size(64.dp)
                         .clip(CircleShape)
-
                 )
             } else {
                 Icon(
@@ -182,9 +182,7 @@ fun contactCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = name,
                     fontWeight = FontWeight.Bold,
@@ -195,15 +193,15 @@ fun contactCard(
 
                 Text(
                     text = phoneNumber,
-                    fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Spacer(modifier = Modifier.width(4.dp))
+
                 Text(
                     text = email,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
+                    fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
@@ -213,17 +211,10 @@ fun contactCard(
             Column(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
-
             ) {
                 IconButton(
                     onClick = {
-                        state.id.value = id
-                        state.name.value = name
-                        state.phoneNumber.value = phoneNumber
-                        state.email.value = email
-                        state.image.value = imageByteArray
-                        state.dateOfCreation.value = dateOfCreation
-                        viewModel.DeleteContact()
+                        showDialog = true
                     }
                 ) {
                     Icon(
@@ -234,13 +225,16 @@ fun contactCard(
                 }
 
                 Spacer(modifier = Modifier.width(6.dp))
+
                 IconButton(
                     onClick = {
-                        val intent = Intent(Intent.ACTION_CALL)
-                        intent.data = Uri.parse("tel:$phoneNumber")
+                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                            data = Uri.parse("tel:$phoneNumber")
+                        }
                         context.startActivity(intent)
+
                     }
-                ){
+                ) {
                     Icon(
                         imageVector = Icons.Default.Call,
                         contentDescription = "call",
@@ -250,4 +244,31 @@ fun contactCard(
             }
         }
     }
+}
+
+@Composable
+fun DeleteConfirmationDialog(
+    name: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        title = {
+            Text(text = "Delete Contact")
+        },
+        text = {
+            Text(text = "Are you sure you want to delete \"$name\"?")
+        }
+    )
 }
