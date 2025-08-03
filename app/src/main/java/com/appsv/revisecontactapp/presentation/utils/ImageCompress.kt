@@ -2,10 +2,8 @@ package com.appsv.revisecontactapp.presentation.utils
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import androidx.compose.runtime.Composable
 import java.io.ByteArrayOutputStream
 
-@Composable
 fun ImageCompress(image: ByteArray): ByteArray {
     val bitmap = BitmapFactory.decodeByteArray(image, 0, image.size)
     val outputStream = ByteArrayOutputStream()

@@ -11,6 +11,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.compose.rememberNavController
+import com.appsv.revisecontactapp.presentation.ContactViewModel
+import com.appsv.revisecontactapp.presentation.navigation.NavGraph
 import com.appsv.revisecontactapp.ui.theme.ReviseContactAppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -20,30 +24,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+
+            val viewModel = hiltViewModel<ContactViewModel>()
+            val navController = rememberNavController()
+
             ReviseContactAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+
+                    NavGraph(navController = navController, viewModel = viewModel)
                 }
             }
         }
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    ReviseContactAppTheme {
-        Greeting("Android")
-    }
-}
